@@ -32,6 +32,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
+import lib.PatPeter.SQLibrary.Database;
+import lib.PatPeter.SQLibrary.MySQL;
+import java.util.logging.Logger;
 /**
  *
  * @author Neises
@@ -42,6 +45,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
     private HashMap<String, Long> banDatabase;
     private final Integer banDatabaseLock = 31337;
     private boolean suppressDeathEvents = false;
+    private MySQL sql;
     
     @Override
     public void onEnable()
@@ -49,6 +53,11 @@ public class HardcoreBans extends JavaPlugin implements Listener
         getConfig().options().copyDefaults(true);
         reloadBanDB();
         getServer().getPluginManager().registerEvents(this, this);
+        if(getConfig().getString("mysql").toLowerCase().equals("true"))
+        {
+            this.sql = new MySQL(Logger.getLogger("Minecraft"), "[HardcoreBans] ", getConfig().getString("address"), getConfig().getString("port"), "hardcorebans", getConfig().getString("username"), getConfig().getString("password"));
+        }
+        sql.open();
     }
     
     @Override
@@ -56,6 +65,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
     {
         saveBanDB();
         saveConfig();
+        sql.close();
     }
     
     @EventHandler
@@ -269,14 +279,14 @@ public class HardcoreBans extends JavaPlugin implements Listener
         int oldBans = banDatabase.size();
         
         for (String targetPlayer : banDatabase.keySet()) {
-            Long banLiftTime = banDatabase.get(targetPlayer);
+            Long banLiftTime = banDatabase.get(targetPlayer.toLowerCase());
 
             if (banLiftTime != null) {
                 long remainingTime = banLiftTime - (System.currentTimeMillis() / 1000);
 
                 if (remainingTime <= 0) {
                     // Ban can be lifted
-                    unbanPlayer(targetPlayer);
+                    unbanPlayer(targetPlayer.toLowerCase());
                 }
             } else {
                 getLogger().log(Level.SEVERE, String.format("An error occurred while checking %s's ban.", targetPlayer));
@@ -456,9 +466,9 @@ public class HardcoreBans extends JavaPlugin implements Listener
 
         synchronized (banDatabaseLock) {
             if (player != null)
-                banDatabase.put(player.getName(), banLiftTime);
+                banDatabase.put(player.getName().toLowerCase(), banLiftTime);
             else
-                banDatabase.put(playerName, banLiftTime);
+                banDatabase.put(playerName.toLowerCase(), banLiftTime);
             if (senderName == null) {
                 // Player was banned for death
                 getLogger().log(Level.INFO, String.format("%s and is banned for %s", reason, humanReadableTime));

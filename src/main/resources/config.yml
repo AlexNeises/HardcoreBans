@@ -8,3 +8,13 @@ bantime: 300
 kickmessage: You have died, so you will be unable to play for $time.
 ## Message that is displayed as the player rejoins while being banned
 rejoinmessage: You are banned for $time because you have died before.
+
+mysql: false
+## Only change the fields below if mysql is set to true
+username: username
+
+password: password
+
+address: localhost
+
+port: 3306
