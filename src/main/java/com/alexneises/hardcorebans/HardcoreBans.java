@@ -93,7 +93,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
     {
         if(isEnabled() && !suppressDeathEvents)
         {
-            banPlayer(UUID.fromString(getUUID(event.getEntity().getName())), getConfig().getLong("bantime"), event.getDeathMessage());
+            banPlayer(event.getEntity().getName(), getConfig().getLong("bantime"), event.getDeathMessage());
         }
     }
     
@@ -115,7 +115,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
                 {
                     sender.sendMessage(String.format("Unable to kill %s", args[0]));
                 }
-                banPlayer(UUID.fromString(getUUID(args[0])), banTime, getUUID(sender.getName()), null);
+                banPlayer(args[0], banTime, sender.getName(), null);
                 return true;
             }
             else
@@ -354,8 +354,8 @@ public class HardcoreBans extends JavaPlugin implements Listener
         }
     }
 
-    private void banPlayer(UUID playerID, long banDuration, String reason) {
-        banPlayer(playerID, banDuration, null, reason);
+    private void banPlayer(String playerName, long banDuration, String reason) {
+        banPlayer(playerName, banDuration, null, reason);
     }
 
     private String longToReadableTime(long time) {
