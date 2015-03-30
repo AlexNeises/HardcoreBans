@@ -64,7 +64,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
         if(isEnabled())
         {
             Player joiningPlayer = event.getPlayer();
-            Long banLiftTime = banDatabase.get(joiningPlayer.getUniqueId());
+            Long banLiftTime = banDatabase.get(joiningPlayer.getName());
             if(banLiftTime != null)
             {
                 long rightNow = (System.currentTimeMillis() / 1000);
@@ -104,7 +104,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
         {
             if(args.length == 2)
             {
-                Player victim = getServer().getPlayer(UUID.fromString(getUUID(args[0])));
+                Player victim = getServer().getPlayer(args[0]);
                 long banTime = Integer.parseInt(args[1]);
                 
                 if((victim != null) && killPlayer(victim.getName(), sender.getName()))
@@ -164,8 +164,8 @@ public class HardcoreBans extends JavaPlugin implements Listener
             else if(args.length == 1)
             {
                 updateDB();
-                String targetPlayer = getUUID(args[0]);
-                Long banLiftTime = banDatabase.get(UUID.fromString(getUUID(targetPlayer)));
+                String targetPlayer = args[0];
+                Long banLiftTime = banDatabase.get(targetPlayer);
                 if(banLiftTime != null)
                 {
                     long remainingTime = banLiftTime - (System.currentTimeMillis() / 1000);
@@ -218,7 +218,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
             if(args.length == 1)
             {
                 String targetPlayer = args[0];
-                Long bantime = banDatabase.get(UUID.fromString(getUUID(targetPlayer)));
+                Long bantime = banDatabase.get(targetPlayer);
                 if(bantime != null)
                 {
                     unbanPlayer(targetPlayer);
@@ -226,7 +226,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
                 }
                 else
                 {
-                    Player tempPlayer = getServer().getPlayer(UUID.fromString(getUUID(targetPlayer)));
+                    Player tempPlayer = getServer().getPlayer(targetPlayer);
                     
                     if (tempPlayer != null) {
                         bantime = banDatabase.get(tempPlayer.getName().toLowerCase());
