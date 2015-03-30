@@ -1,0 +1,87 @@
+## YAML Template.
+---
+name: HardcoreBans
+main: com.alexneises.hardcorebans.HardcoreBans
+description: Automatically bans a player after death for a configurable amount of time
+version: 0.1
+author: amx15
+website: https://github.com/amx15
+
+commands:
+  db-ban:
+    description: Bans a player for a specified amount of time.
+    permission: DeathBan.BanPlayer
+    permission-message: You are not allowed to ban players because you don't have <permission>.
+    usage: "Usage: /<command> <player> <time in seconds>"
+  db-clear:
+    description: Clears the banlist.
+    permission: DeathBan.ClearBans
+    permission-message: You are not allowed to clear the banlist because you don't have <permission>.
+    usage: "Usage: /<command>"
+  db-list:
+    description: Lists the banned players and their remaining bantime.
+    permission: DeathBan.ListBans
+    permission-message: You are not allowed to see the banlist because you don't have <permission>.
+    usage: "Usage: /<command> [<player>]"
+  db-reload:
+    description: Reloads the plugin's configuration and banlist.
+    permission: DeathBan.Reload
+    permission-message: You are not allowed to reload because you don't have <permission>.
+    usage: "Usage: /<command>"
+  db-settime:
+    description: Allows you to set the amount of time that a player is banned for after death.
+    permission: DeathBan.SetTime
+    permission-message: You are not allowed to edit this value because you don't have <permission>.
+    usage: "Usage: /<command> <time in seconds>"
+  db-unban:
+    description: Removes a player from the banlist.
+    permission: DeathBan.UnbanPlayer
+    permission-message: You are not allowed to unban players because you don't have <permission>.
+    usage: "Usage: /<command> <player>"
+  db-update:
+    description: Updates the banlist.
+    permission: DeathBan.Update
+    permission-message: You are not allowed to update the banlist because you don't have <permission>.
+    usage: "Usage: /<command>"
+  permissions:
+    DeathBan.*:
+      description: Gives access to all DeathBan commands
+      children:
+        DeathBan.BanPlayer: true
+        DeathBan.ClearBans: true
+        DeathBan.ListBans: true
+        DeathBan.Reload: true
+        DeathBan.SetTime: true
+        DeathBan.UnbanPlayer: true
+        DeathBan.Update: true
+    DeathBan.BanAdmin:
+      description: Gives access to DeathBan's administrative commands.
+      children:
+        DeathBan.BanPlayer: true
+        DeathBan.ClearBans: true
+        DeathBan.ListBans: true
+        DeathBan.Reload: true
+        DeathBan.SetTime: true
+        DeathBan.UnbanPlayer: true
+        DeathBan.Update: true
+    DeathBan.BanPlayer:
+      default: op
+      description: Allows players to trigger a DeathBan on other players.
+    DeathBan.ClearBans:
+      default: op
+      description: Allows players to clear the banlist.
+    DeathBan.ListBans:
+      default: true
+      description: Allows players to see the list of banned players.
+    DeathBan.Reload:
+      default: op
+      description: Allows players to reload the configuration and banlist.
+    DeathBan.SetTime:
+      default: op
+      description: Allows players to set the amount of time that a player is banned for after death.
+    DeathBan.UnbanPlayer:
+      default: op
+      description: Allows players to unban players.
+    DeathBan.Update:
+      default: true
+      description: Allows players to update the banlist.
