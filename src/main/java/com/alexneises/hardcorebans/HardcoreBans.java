@@ -297,11 +297,11 @@ public class HardcoreBans extends JavaPlugin implements Listener
                 for (String player : playerList) {
                     Object banLiftTime = storedBanDatabase.get(player.toLowerCase());
                     if (banLiftTime instanceof Integer) {
-                        banDatabase.put(player, ((Integer) banLiftTime).longValue());
+                        banDatabase.put(player.toLowerCase(), ((Integer) banLiftTime).longValue());
                     } else if (banLiftTime instanceof Long) {
-                        banDatabase.put(player, (Long) banLiftTime);
+                        banDatabase.put(player.toLowerCase(), (Long) banLiftTime);
                     } else {
-                        getLogger().log(Level.SEVERE, String.format("Unable to load banLitTime for %s, ignoring!", player));
+                        getLogger().log(Level.SEVERE, String.format("Unable to load banLiftTime for %s, ignoring!", player));
                     }
                 }
             }
