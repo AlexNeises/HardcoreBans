@@ -39,7 +39,7 @@ import java.net.URL;
 public class HardcoreBans extends JavaPlugin implements Listener
 {
     private FileConfiguration banStorage;
-    private HashMap<UUID, Long> banDatabase;
+    private HashMap<String, Long> banDatabase;
     private final Integer banDatabaseLock = 31337;
     private boolean suppressDeathEvents = false;
     
@@ -82,7 +82,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
                 }
                 else
                 {
-                    unbanPlayer(joiningPlayer.getUniqueId());
+                    unbanPlayer(joiningPlayer.getName());
                 }
             }
         }
@@ -142,7 +142,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
             {
                 updateDB();
                 ArrayList<String> banMessages = new ArrayList<String>(banDatabase.size());
-                for(UUID targetPlayer : banDatabase.keySet())
+                for(String targetPlayer : banDatabase.keySet())
                 {
                     long remainingTime = banDatabase.get(targetPlayer) - (System.currentTimeMillis() / 1000);
                     String readableRemainingTime = longToReadableTime(remainingTime);
@@ -217,11 +217,11 @@ public class HardcoreBans extends JavaPlugin implements Listener
         {
             if(args.length == 1)
             {
-                String targetPlayer = getUUID(args[0]);
+                String targetPlayer = args[0];
                 Long bantime = banDatabase.get(UUID.fromString(getUUID(targetPlayer)));
                 if(bantime != null)
                 {
-                    unbanPlayer(UUID.fromString(getUUID(targetPlayer)));
+                    unbanPlayer(targetPlayer);
                     sender.sendMessage(String.format("%s has been unbanned.", getName(targetPlayer)));
                 }
                 else
@@ -232,7 +232,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
                         bantime = banDatabase.get(tempPlayer.getName().toLowerCase());
                         
                         if (bantime != null) {
-                            unbanPlayer(UUID.fromString(getUUID(tempPlayer.getName())));
+                            unbanPlayer(tempPlayer.getName());
                             sender.sendMessage(String.format("%s has been unbanned.", targetPlayer));
                         } else {
                             sender.sendMessage(String.format("Neither %s nor %s is banned.", targetPlayer, tempPlayer.getName()));
@@ -268,7 +268,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
     private void updateDB() {
         int oldBans = banDatabase.size();
         
-        for (UUID targetPlayer : banDatabase.keySet()) {
+        for (String targetPlayer : banDatabase.keySet()) {
             Long banLiftTime = banDatabase.get(targetPlayer);
 
             if (banLiftTime != null) {
@@ -289,7 +289,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
     private void reloadBanDB() {
         synchronized (banDatabaseLock) {
             banStorage = YamlConfiguration.loadConfiguration(getBanDBFile());
-            banDatabase = new HashMap<UUID, Long>();
+            banDatabase = new HashMap<String, Long>();
 
             MemorySection storedBanDatabase = (MemorySection) banStorage.get("banlist", null);
             if (storedBanDatabase != null) {
@@ -297,9 +297,9 @@ public class HardcoreBans extends JavaPlugin implements Listener
                 for (String player : playerList) {
                     Object banLiftTime = storedBanDatabase.get(player.toLowerCase());
                     if (banLiftTime instanceof Integer) {
-                        banDatabase.put(UUID.fromString(getUUID(player)), ((Integer) banLiftTime).longValue());
+                        banDatabase.put(player, ((Integer) banLiftTime).longValue());
                     } else if (banLiftTime instanceof Long) {
-                        banDatabase.put(UUID.fromString(getUUID(player)), (Long) banLiftTime);
+                        banDatabase.put(player, (Long) banLiftTime);
                     } else {
                         getLogger().log(Level.SEVERE, String.format("Unable to load banLitTime for %s, ignoring!", player));
                     }
@@ -325,7 +325,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
 
     private void clearBanDB() {
         synchronized (banDatabaseLock) {
-            banDatabase = new HashMap<UUID, Long>();
+            banDatabase = new HashMap<String, Long>();
             getLogger().log(Level.INFO, "Banlist cleared");
             saveBanDB();
         }
@@ -435,16 +435,16 @@ public class HardcoreBans extends JavaPlugin implements Listener
         }
     }
 
-    private void unbanPlayer(UUID playerID) {
+    private void unbanPlayer(String playerName) {
         synchronized (banDatabaseLock) {
-            banDatabase.remove(getName(playerID));
+            banDatabase.remove(playerName);
             saveBanDB();
         }
-        getLogger().log(Level.INFO, String.format("Unbanned %s", getName(playerID)));
+        getLogger().log(Level.INFO, String.format("Unbanned %s", playerName));
     }
 
-    private void banPlayer(UUID playerID, long banDuration, String senderName, String reason) {
-        Player player = getServer().getPlayer(playerID);
+    private void banPlayer(String playerName, long banDuration, String senderName, String reason) {
+        Player player = getServer().getPlayer(playerName);
         String humanReadableTime = longToReadableTime(banDuration);
         String kickReason = getConfig().getString("kickmessage").replace("$time", humanReadableTime);
         Long banLiftTime = (System.currentTimeMillis() / 1000) + banDuration;
@@ -456,14 +456,14 @@ public class HardcoreBans extends JavaPlugin implements Listener
 
         synchronized (banDatabaseLock) {
             if (player != null)
-                banDatabase.put(player.getUniqueId(), banLiftTime);
+                banDatabase.put(player.getName(), banLiftTime);
             else
-                banDatabase.put(playerID, banLiftTime);
+                banDatabase.put(playerName, banLiftTime);
             if (senderName == null) {
                 // Player was banned for death
                 getLogger().log(Level.INFO, String.format("%s and is banned for %s", reason, humanReadableTime));
             } else {
-                getLogger().log(Level.INFO, String.format("%s banned %s for %s", senderName, getName(playerID), humanReadableTime));
+                getLogger().log(Level.INFO, String.format("%s banned %s for %s", senderName, playerName, humanReadableTime));
 
                 // Notify sender
                 Player sender = getServer().getPlayer(senderName);
@@ -471,7 +471,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
                     if (player != null) {
                         sender.sendMessage(String.format("%s is now banned for %s.", player.getName(), humanReadableTime));
                     } else {
-                        sender.sendMessage(String.format("%s is now banned for %s.", getName(playerID), humanReadableTime));
+                        sender.sendMessage(String.format("%s is now banned for %s.", playerName, humanReadableTime));
                     }
                 }
             }
