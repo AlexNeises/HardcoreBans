@@ -69,7 +69,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
             Class.forName(driver).newInstance();
             conn = DriverManager.getConnection(url,username,password);
             Statement st = conn.createStatement();
-            ResultSet res = st.executeQuery("CREATE DATABASE IF NOT EXISTS hardcore_bans; USE hardcore_bans;");
+            st.executeUpdate("CREATE DATABASE IF NOT EXISTS hardcore_bans; USE hardcore_bans;");
         }
         catch (Exception ex)
         {
