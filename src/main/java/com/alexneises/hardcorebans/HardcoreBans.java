@@ -81,7 +81,6 @@ public class HardcoreBans extends JavaPlugin implements Listener
     public void onDisable()
     {
 //        saveBanDB();
-        saveConfig();
         if(getConfig().getString("mysql").toLowerCase().equals("true"))
         {
             try
@@ -93,6 +92,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
                 ex.printStackTrace();
             }
         }
+        this.saveConfig();
     }
     
     @EventHandler
@@ -357,6 +357,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
         {
             return false;
         }
+        this.saveConfig();
         return true;
     }
     
@@ -423,20 +424,34 @@ public class HardcoreBans extends JavaPlugin implements Listener
 //        synchronized (banDatabaseLock) {
 //            banStorage = YamlConfiguration.loadConfiguration(getBanDBFile());
 //            banDatabase = new HashMap<String, Long>();
-//
-//            MemorySection storedBanDatabase = (MemorySection) banStorage.get("banlist", null);
-//            if (storedBanDatabase != null) {
-//                Set<String> playerList = storedBanDatabase.getKeys(false);
-//                for (String player : playerList) {
-//                    Object banLiftTime = storedBanDatabase.get(player.toLowerCase());
-//                    if (banLiftTime instanceof Integer) {
-//                        banDatabase.put(player.toLowerCase(), ((Integer) banLiftTime).longValue());
-//                    } else if (banLiftTime instanceof Long) {
-//                        banDatabase.put(player.toLowerCase(), (Long) banLiftTime);
-//                    } else {
-//                        getLogger().log(Level.SEVERE, String.format("Unable to load banLiftTime for %s, ignoring!", player));
+//            try
+//            {
+//                oldBans = st.executeUpdate("SELECT bantime FROM hardcore_bans.bans WHERE 1;");
+//                MemorySection storedBanDatabase = (MemorySection) banStorage.get("banlist", null);
+//                if (storedBanDatabase != null)
+//                {
+//                    Set<String> playerList = storedBanDatabase.getKeys(false);
+//                    for (String player : playerList)
+//                    {
+//                        Object banLiftTime = storedBanDatabase.get(player.toLowerCase());
+//                        if (banLiftTime instanceof Integer)
+//                        {
+//                            banDatabase.put(player.toLowerCase(), ((Integer) banLiftTime).longValue());
+//                        }
+//                        else if (banLiftTime instanceof Long)
+//                        {
+//                            banDatabase.put(player.toLowerCase(), (Long) banLiftTime);
+//                        }
+//                        else
+//                        {
+//                            getLogger().log(Level.SEVERE, String.format("Unable to load banLiftTime for %s, ignoring!", player));
+//                        }
 //                    }
 //                }
+//            }
+//            catch (Exception ex)
+//            {
+//                ex.printStackTrace();
 //            }
 //        }
 //        getLogger().log(Level.INFO, String.format("Loaded %d bans from ban storage.", banDatabase.size()));
