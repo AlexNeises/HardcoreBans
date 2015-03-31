@@ -40,16 +40,16 @@ import java.sql.*;
 public class HardcoreBans extends JavaPlugin implements Listener
 {
     private FileConfiguration banStorage;
-    private HashMap<String, Long> banDatabase;
     private final Integer banDatabaseLock = 31337;
     private boolean suppressDeathEvents = false;
     private Connection conn;
+    private Statement st;
     
     @Override
     public void onEnable()
     {
         getConfig().options().copyDefaults(true);
-        reloadBanDB();
+//        reloadBanDB();
         getServer().getPluginManager().registerEvents(this, this);
         if(getConfig().getString("mysql").toLowerCase().equals("true"))
         {
@@ -60,7 +60,6 @@ public class HardcoreBans extends JavaPlugin implements Listener
     public void modifyDatabase()
     {
         String url = "jdbc:mysql://"+getConfig().getString("hostname")+":"+getConfig().getString("port")+"/";
-        String dbName = "hardcore_bans";
         String driver = "com.mysql.jdbc.Driver";
         String username = getConfig().getString("username");
         String password = getConfig().getString("password");
@@ -68,8 +67,9 @@ public class HardcoreBans extends JavaPlugin implements Listener
         {
             Class.forName(driver).newInstance();
             conn = DriverManager.getConnection(url,username,password);
-            Statement st = conn.createStatement();
+            st = conn.createStatement();
             st.executeUpdate("CREATE DATABASE IF NOT EXISTS hardcore_bans; USE hardcore_bans;");
+            st.executeUpdate("CREATE TABLE IF NOT EXISTS hardcore_bans.bans (playername VARCHAR(256), bantime BIGINT;");
         }
         catch (Exception ex)
         {
@@ -80,7 +80,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
     @Override
     public void onDisable()
     {
-        saveBanDB();
+//        saveBanDB();
         saveConfig();
         if(getConfig().getString("mysql").toLowerCase().equals("true"))
         {
@@ -101,7 +101,19 @@ public class HardcoreBans extends JavaPlugin implements Listener
         if(isEnabled())
         {
             Player joiningPlayer = event.getPlayer();
-            Long banLiftTime = banDatabase.get(joiningPlayer.getName());
+            Long banLiftTime = 0L;
+            try
+            {
+                ResultSet rs = st.executeQuery("SELECT bantime FROM hardcore_bans.bans WHERE playername = '"+joiningPlayer.getName()+"';");
+                while(rs.next())
+                {
+                    banLiftTime = rs.getLong("bantime");
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+            }
             if(banLiftTime != null)
             {
                 long rightNow = (System.currentTimeMillis() / 1000);
@@ -164,7 +176,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
         {
             if(args.length == 0)
             {
-                clearBanDB();
+//                clearBanDB();
                 sender.sendMessage("Banlist cleared.");
                 return true;
             }
@@ -178,31 +190,68 @@ public class HardcoreBans extends JavaPlugin implements Listener
             if(args.length == 0)
             {
                 updateDB();
-                ArrayList<String> banMessages = new ArrayList<String>(banDatabase.size());
-                for(String targetPlayer : banDatabase.keySet())
+//                ArrayList<String> banMessages = new ArrayList<String>(banDatabase.size());
+                List<String> players = new ArrayList<String>();
+                try
                 {
-                    long remainingTime = banDatabase.get(targetPlayer) - (System.currentTimeMillis() / 1000);
-                    String readableRemainingTime = longToReadableTime(remainingTime);
-                    banMessages.add(String.format("%s is banned for %s", getName(targetPlayer), readableRemainingTime));
-                }
-                if(banMessages.isEmpty())
-                {
-                    sender.sendMessage("The banlist is empty.");
-                }
-                else
-                {
-                    for(String banMessage: banMessages)
+                    ResultSet rs = st.executeQuery("SELECT playername FROM hardcore_bans.bans WHERE 1;");
+                    while(rs.next())
                     {
-                        sender.sendMessage(banMessage);
+                        players.add(rs.getString("playername"));
                     }
                 }
+                catch (Exception ex)
+                {
+                    ex.printStackTrace();
+                }
+                for(String targetPlayer : players)
+                {
+                    long remainingTime = 0L;
+                    try
+                    {
+                        ResultSet rs = st.executeQuery("SELECT bantime FROM hardcore_bans.bans WHERE playername = '"+targetPlayer+"';");
+                        while(rs.next())
+                        {
+                            remainingTime = rs.getLong("bantime") - System.currentTimeMillis() / 1000;
+                            String readableRemainingTime = longToReadableTime(remainingTime);
+//                            banMessages.add(String.format("%s is banned for %s", getName(targetPlayer), readableRemainingTime));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ex.printStackTrace();
+                    }
+                }
+//                if(banMessages.isEmpty())
+//                {
+//                    sender.sendMessage("The banlist is empty.");
+//                }
+//                else
+//                {
+//                    for(String banMessage: banMessages)
+//                    {
+//                        sender.sendMessage(banMessage);
+//                    }
+//                }
                 return true;
             }
             else if(args.length == 1)
             {
                 updateDB();
                 String targetPlayer = args[0];
-                Long banLiftTime = banDatabase.get(targetPlayer);
+                Long banLiftTime = 0L;
+            try
+            {
+                ResultSet rs = st.executeQuery("SELECT bantime FROM hardcore_bans.bans WHERE playername = '"+targetPlayer+"';");
+                while(rs.next())
+                {
+                    banLiftTime = rs.getLong("bantime");
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+            }
                 if(banLiftTime != null)
                 {
                     long remainingTime = banLiftTime - (System.currentTimeMillis() / 1000);
@@ -225,7 +274,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
             if(args.length == 0)
             {
                 reloadConfig();
-                reloadBanDB();
+//                reloadBanDB();
                 sender.sendMessage("Reloaded banlist");
                 return true;
             }
@@ -255,30 +304,43 @@ public class HardcoreBans extends JavaPlugin implements Listener
             if(args.length == 1)
             {
                 String targetPlayer = args[0];
-                Long bantime = banDatabase.get(targetPlayer);
-                if(bantime != null)
+                Long bantime = 0L;
+                try
                 {
-                    unbanPlayer(targetPlayer);
-                    sender.sendMessage(String.format("%s has been unbanned.", getName(targetPlayer)));
-                }
-                else
-                {
-                    Player tempPlayer = getServer().getPlayer(targetPlayer);
-                    
-                    if (tempPlayer != null) {
-                        bantime = banDatabase.get(tempPlayer.getName().toLowerCase());
-                        
-                        if (bantime != null) {
-                            unbanPlayer(tempPlayer.getName());
-                            sender.sendMessage(String.format("%s has been unbanned.", targetPlayer));
-                        } else {
-                            sender.sendMessage(String.format("Neither %s nor %s is banned.", targetPlayer, tempPlayer.getName()));
+                    ResultSet rs = st.executeQuery("SELECT bantime FROM hardcore_bans.bans WHERE playername = '"+targetPlayer+"';");
+                    while(rs.next())
+                    {
+                        bantime = rs.getLong("bantime");
+                        if(bantime != null)
+                        {
+                            unbanPlayer(targetPlayer);
+                            sender.sendMessage(String.format("%s has been unbanned.", getName(targetPlayer)));
                         }
-                    } else {
-                        sender.sendMessage(String.format("%s is not banned.", targetPlayer));
+                        else
+                        {
+                            Player tempPlayer = getServer().getPlayer(targetPlayer);
+                            if (tempPlayer != null) {
+                                if (bantime != null) {
+                                    unbanPlayer(tempPlayer.getName());
+                                    sender.sendMessage(String.format("%s has been unbanned.", targetPlayer));
+                                }
+                                else
+                                {
+                                    sender.sendMessage(String.format("Neither %s nor %s is banned.", targetPlayer, tempPlayer.getName()));
+                                }
+                            }
+                            else
+                            {
+                                sender.sendMessage(String.format("%s is not banned.", targetPlayer));
+                            }
+                        }
+                        return true;
                     }
                 }
-                return true;
+                catch (Exception ex)
+                {
+                    ex.printStackTrace();
+                }
             }
             else
             {
@@ -295,6 +357,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
         {
             return false;
         }
+        return true;
     }
     
     private File getBanDBFile()
@@ -303,70 +366,103 @@ public class HardcoreBans extends JavaPlugin implements Listener
     }
     
     private void updateDB() {
-        int oldBans = banDatabase.size();
-        
-        for (String targetPlayer : banDatabase.keySet()) {
-            Long banLiftTime = banDatabase.get(targetPlayer.toLowerCase());
-
-            if (banLiftTime != null) {
-                long remainingTime = banLiftTime - (System.currentTimeMillis() / 1000);
-
-                if (remainingTime <= 0) {
-                    // Ban can be lifted
-                    unbanPlayer(targetPlayer.toLowerCase());
-                }
-            } else {
-                getLogger().log(Level.SEVERE, String.format("An error occurred while checking %s's ban.", targetPlayer));
-            }
+        int oldBans = 0;
+        try
+        {
+            oldBans = st.executeUpdate("SELECT bantime FROM hardcore_bans.bans WHERE 1;");
         }
-        
-        getLogger().log(Level.INFO, String.format("Database maintenance complete, removed %d bans.", oldBans - banDatabase.size()));
-    }
-    
-    private void reloadBanDB() {
-        synchronized (banDatabaseLock) {
-            banStorage = YamlConfiguration.loadConfiguration(getBanDBFile());
-            banDatabase = new HashMap<String, Long>();
-
-            MemorySection storedBanDatabase = (MemorySection) banStorage.get("banlist", null);
-            if (storedBanDatabase != null) {
-                Set<String> playerList = storedBanDatabase.getKeys(false);
-                for (String player : playerList) {
-                    Object banLiftTime = storedBanDatabase.get(player.toLowerCase());
-                    if (banLiftTime instanceof Integer) {
-                        banDatabase.put(player.toLowerCase(), ((Integer) banLiftTime).longValue());
-                    } else if (banLiftTime instanceof Long) {
-                        banDatabase.put(player.toLowerCase(), (Long) banLiftTime);
-                    } else {
-                        getLogger().log(Level.SEVERE, String.format("Unable to load banLiftTime for %s, ignoring!", player));
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+        }
+        try
+        {
+            List<String> players = new ArrayList<String>();
+            ResultSet rs = st.executeQuery("SELECT bantime FROM hardcore_bans.bans WHERE 1;");
+            while(rs.next())
+            {
+                players.add(rs.getString("playername"));
+            }
+            for (String targetPlayer : players)
+            {
+                Long banLiftTime = 0L;
+                try
+                {
+                    ResultSet newrs = st.executeQuery("SELECT bantime FROM hardcore_bans.bans WHERE playername = '"+targetPlayer+"';");
+                    while(newrs.next())
+                    {
+                        banLiftTime = rs.getLong("bantime");
+                        if (banLiftTime != null)
+                        {
+                            long remainingTime = banLiftTime - (System.currentTimeMillis() / 1000);
+                            if (remainingTime <= 0)
+                            {
+                                unbanPlayer(targetPlayer.toLowerCase());
+                            }
+                        }
+                        else
+                        {
+                            getLogger().log(Level.SEVERE, String.format("An error occurred while checking %s's ban.", targetPlayer));
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    ex.printStackTrace();
+                }
             }
         }
-        getLogger().log(Level.INFO, String.format("Loaded %d bans from ban storage.", banDatabase.size()));
-        updateDB();
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+        }        
+//        getLogger().log(Level.INFO, String.format("Database maintenance complete, removed %d bans.", oldBans - banDatabase.size()));
     }
+    
+//    private void reloadBanDB() {
+//        synchronized (banDatabaseLock) {
+//            banStorage = YamlConfiguration.loadConfiguration(getBanDBFile());
+//            banDatabase = new HashMap<String, Long>();
+//
+//            MemorySection storedBanDatabase = (MemorySection) banStorage.get("banlist", null);
+//            if (storedBanDatabase != null) {
+//                Set<String> playerList = storedBanDatabase.getKeys(false);
+//                for (String player : playerList) {
+//                    Object banLiftTime = storedBanDatabase.get(player.toLowerCase());
+//                    if (banLiftTime instanceof Integer) {
+//                        banDatabase.put(player.toLowerCase(), ((Integer) banLiftTime).longValue());
+//                    } else if (banLiftTime instanceof Long) {
+//                        banDatabase.put(player.toLowerCase(), (Long) banLiftTime);
+//                    } else {
+//                        getLogger().log(Level.SEVERE, String.format("Unable to load banLiftTime for %s, ignoring!", player));
+//                    }
+//                }
+//            }
+//        }
+//        getLogger().log(Level.INFO, String.format("Loaded %d bans from ban storage.", banDatabase.size()));
+//        updateDB();
+//    }
+//
+//    private void saveBanDB() {
+//        synchronized (banDatabaseLock) {
+//            banStorage.set("banlist", banDatabase);
+//            File banDBFile = getBanDBFile();
+//            try {
+//                banStorage.save(banDBFile);
+//                getLogger().log(Level.INFO, "Banlist saved.");
+//            } catch (IOException ex) {
+//                getLogger().log(Level.SEVERE, String.format("Could not save banlist to %s!", banDBFile.getName()), ex);
+//            }
+//        }
+//    }
 
-    private void saveBanDB() {
-        synchronized (banDatabaseLock) {
-            banStorage.set("banlist", banDatabase);
-            File banDBFile = getBanDBFile();
-            try {
-                banStorage.save(banDBFile);
-                getLogger().log(Level.INFO, "Banlist saved.");
-            } catch (IOException ex) {
-                getLogger().log(Level.SEVERE, String.format("Could not save banlist to %s!", banDBFile.getName()), ex);
-            }
-        }
-    }
-
-    private void clearBanDB() {
-        synchronized (banDatabaseLock) {
-            banDatabase = new HashMap<String, Long>();
-            getLogger().log(Level.INFO, "Banlist cleared");
-            saveBanDB();
-        }
-    }
+//    private void clearBanDB() {
+//        synchronized (banDatabaseLock) {
+//            banDatabase = new HashMap<String, Long>();
+//            getLogger().log(Level.INFO, "Banlist cleared");
+//            saveBanDB();
+//        }
+//    }
 
     private boolean killPlayer(String victimName, String killerName) {
         Player victim = getServer().getPlayer(victimName);
@@ -474,8 +570,14 @@ public class HardcoreBans extends JavaPlugin implements Listener
 
     private void unbanPlayer(String playerName) {
         synchronized (banDatabaseLock) {
-            banDatabase.remove(playerName);
-            saveBanDB();
+            try
+            {
+                st.executeUpdate("DELETE FROM hardcore_bans.bans WHERE playername='"+playerName+"';");
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+            }
         }
         getLogger().log(Level.INFO, String.format("Unbanned %s", playerName));
     }
@@ -493,9 +595,27 @@ public class HardcoreBans extends JavaPlugin implements Listener
 
         synchronized (banDatabaseLock) {
             if (player != null)
-                banDatabase.put(player.getName().toLowerCase(), banLiftTime);
+            {
+                try
+                {
+                    st.executeUpdate("INSERT INTO hardcore_bans.bans (playername,bantime) VALUES ('"+player.getName()+"',"+banLiftTime+");");
+                }
+                catch (Exception ex)
+                {
+                    ex.printStackTrace();
+                }
+            }
             else
-                banDatabase.put(playerName.toLowerCase(), banLiftTime);
+            {
+                try
+                {
+                    st.executeUpdate("INSERT INTO hardcore_bans.bans (playername,bantime) VALUES ("+playerName+","+banLiftTime+");");
+                }
+                catch (Exception ex)
+                {
+                    ex.printStackTrace();
+                }
+            }
             if (senderName == null) {
                 // Player was banned for death
                 getLogger().log(Level.INFO, String.format("%s and is banned for %s", reason, humanReadableTime));
@@ -512,7 +632,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
                     }
                 }
             }
-            saveBanDB();
+//            saveBanDB();
         }
     }
     
