@@ -43,6 +43,7 @@ public class HardcoreBans extends JavaPlugin implements Listener
     private HashMap<String, Long> banDatabase;
     private final Integer banDatabaseLock = 31337;
     private boolean suppressDeathEvents = false;
+    private Connection conn;
     
     @Override
     public void onEnable()
@@ -52,21 +53,27 @@ public class HardcoreBans extends JavaPlugin implements Listener
         getServer().getPluginManager().registerEvents(this, this);
         if(getConfig().getString("mysql").toLowerCase().equals("true"))
         {
-            String url = "jdbc:mysql://"+getConfig().getString("hostname")+":"+getConfig().getString("port")+"/";
-            String dbName = "hardcore_bans";
-            String driver = "com.mysql.jdbc.Driver";
-            String username = getConfig().getString("username");
-            String password = getConfig().getString("password");
-            try
-            {
-                Class.forName(driver).newInstance();
-                Connection conn = DriverManager.getConnection(url+dbName,username,password);
-                conn.close();
-            }
-            catch (Exception ex)
-            {
-                ex.printStackTrace();
-            }
+            modifyDatabase();
+        }
+    }
+    
+    public void modifyDatabase()
+    {
+        String url = "jdbc:mysql://"+getConfig().getString("hostname")+":"+getConfig().getString("port")+"/";
+        String dbName = "hardcore_bans";
+        String driver = "com.mysql.jdbc.Driver";
+        String username = getConfig().getString("username");
+        String password = getConfig().getString("password");
+        try
+        {
+            Class.forName(driver).newInstance();
+            conn = DriverManager.getConnection(url,username,password);
+            Statement st = conn.createStatement();
+            ResultSet res = st.executeQuery("CREATE DATABASE IF NOT EXISTS hardcore_bans; USE hardcore_bans;");
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
         }
     }
     
@@ -77,7 +84,14 @@ public class HardcoreBans extends JavaPlugin implements Listener
         saveConfig();
         if(getConfig().getString("mysql").toLowerCase().equals("true"))
         {
-            
+            try
+            {
+                conn.close();
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+            }
         }
     }
     
