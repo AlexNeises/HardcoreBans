@@ -32,9 +32,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
-import lib.PatPeter.SQLibrary.Database;
-import lib.PatPeter.SQLibrary.MySQL;
-import java.util.logging.Logger;
+import java.sql.*;
 /**
  *
  * @author Neises
@@ -45,7 +43,6 @@ public class HardcoreBans extends JavaPlugin implements Listener
     private HashMap<String, Long> banDatabase;
     private final Integer banDatabaseLock = 31337;
     private boolean suppressDeathEvents = false;
-    private MySQL sql;
     
     @Override
     public void onEnable()
@@ -55,9 +52,22 @@ public class HardcoreBans extends JavaPlugin implements Listener
         getServer().getPluginManager().registerEvents(this, this);
         if(getConfig().getString("mysql").toLowerCase().equals("true"))
         {
-            this.sql = new MySQL(Logger.getLogger("Minecraft"), "[HardcoreBans] ", getConfig().getString("address"), getConfig().getString("port"), "hardcorebans", getConfig().getString("username"), getConfig().getString("password"));
+            String url = "jdbc:mysql://"+getConfig().getString("hostname")+":"+getConfig().getString("port")+"/";
+            String dbName = "hardcore_bans";
+            String driver = "com.mysql.jdbc.Driver";
+            String username = getConfig().getString("username");
+            String password = getConfig().getString("password");
+            try
+            {
+                Class.forName(driver).newInstance();
+                Connection conn = DriverManager.getConnection(url+dbName,username,password);
+                conn.close();
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+            }
         }
-        sql.open();
     }
     
     @Override
@@ -65,7 +75,10 @@ public class HardcoreBans extends JavaPlugin implements Listener
     {
         saveBanDB();
         saveConfig();
-        sql.close();
+        if(getConfig().getString("mysql").toLowerCase().equals("true"))
+        {
+            
+        }
     }
     
     @EventHandler

@@ -15,6 +15,6 @@ username: username
 
 password: password
 
-address: localhost
+hostname: localhost
 
 port: 3306
